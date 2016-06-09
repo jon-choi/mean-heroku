@@ -8,12 +8,12 @@ var CONTACTS_COLLECTION = "contacts";
 
 var app = express();
 app.use(express.static(__dirname + "/public"));
-app.use(bodyParser.json));
+app.use(bodyParser.json);
 
 // Create a database variable outside of the database connection callback to reuse the connection pool in your app.
 var db;
 
-// Connect to the tdatabase before starting the application server.
+// Connect to the database before starting the application server.
 mongodb.MongoClient.connect(process.env.MONGODB_URI, function (err, database) {
     if (err) {
         console.log(err);
@@ -34,7 +34,7 @@ mongodb.MongoClient.connect(process.env.MONGODB_URI, function (err, database) {
 // CONTACTS API ROUTES BELOW
 
 // Generic error handler used by all endpoints.
-function handlerError(res, reason, message, code) {
+function handleError(res, reason, message, code) {
     console.log("ERROR: " + reason);
     res.status(code || 500).json({"error": message});
 }
@@ -48,6 +48,20 @@ app.get("/contacts", function(req, res) {
 });
 
 app.post("/contacts", function (req, res) {
+    var newContact = req.body;
+    newContact.createDate = new Date();
+
+    if (!(req.body.firstName || req.body.lastName)) {
+        handleError(res, "Invalid user input", "Must provide a first or last name.", 400);
+    }
+
+    db.collection(CONTACTS_COLLECTION).insertOne(newContact, function(err, doc) {
+        if (err) {
+            handleError(res, err.message, "Failed to create new contact.");
+        } else {
+            res.status(201).json(doc.ops[0]);
+        }
+    });
 });
 
 /*  "/contacts/:id"
